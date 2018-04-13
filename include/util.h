@@ -45,6 +45,10 @@ void get_random_bytes(uint8_t *dest, int len);
 const char *bin2hex(const uint8_t *src, unsigned srclen, char *dst, unsigned dstlen);
 
 bool tune_socket(int sock, bool is_unix) _MUSTCHECK;
+void tune_accept(int sock, bool on);
+
+void create_sockets(struct StatList *sock_list);
+void cleanup_sockets(struct StatList *sock_list);
 
 bool strlist_contains(const char *liststr, const char *str);
 
