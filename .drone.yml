@@ -13,7 +13,8 @@ pipeline:
       - ./configure --with-pmgr
   build-ubuntu:
     group: build
-    image: pexeso/pexeso-build-ubuntu:16.04
+    docker:
+      image: pexeso/pexeso-build-ubuntu:16.04
       auth_config:
         username: ${docker_user}
         password: ${docker_passwd}
