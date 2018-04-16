@@ -13,6 +13,13 @@ and "#" are not recognized when they appear later in the line.
 Generic settings
 ================
 
+pmgr_workers
+------------
+
+If this option is set to an integer value greater than 1, the process manager will be enabled. Process manager will fork itself into 1 manager and ``pmgr_workers`` worker processes delegating each newly connected client to one of the workers. When this option is specified ``unix_socket_dir`` must be specified and ``pidfile`` must not be specified. Daemonization and process takeover are not supported.
+
+Default: not set.
+
 logfile
 -------
 
