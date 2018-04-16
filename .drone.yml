@@ -1,11 +1,7 @@
 pipeline:
   build-debian:
     group: build
-    docker:
-      image: pexeso/pexeso-build-debian:9.3
-      auth_config:
-        username: ${docker_user}
-        password: ${docker_passwd}
+    image: pexeso/pexeso-build-debian:9.3
     commands:
       - git submodule init
       - git submodule update
@@ -13,11 +9,7 @@ pipeline:
       - ./configure --with-pmgr
   build-ubuntu:
     group: build
-    docker:
-      image: pexeso/pexeso-build-ubuntu:16.04
-      auth_config:
-        username: ${docker_user}
-        password: ${docker_passwd}
+    image: pexeso/pexeso-build-ubuntu:16.04
     commands:
       - git submodule init
       - git submodule update
