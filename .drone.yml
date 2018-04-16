@@ -1,0 +1,32 @@
+pipeline:
+  build-debian:
+    group: build
+    docker:
+      image: pexeso/pexeso-build-debian:9.3
+      auth_config:
+        username: ${docker_user}
+        password: ${docker_passwd}
+    commands:
+      - git submodule init
+      - git submodule update
+      - ./autogen.sh
+      - ./configure --with-pmgr
+  build-ubuntu:
+    group: build
+    image: pexeso/pexeso-build-ubuntu:16.04
+      auth_config:
+        username: ${docker_user}
+        password: ${docker_passwd}
+    commands:
+      - git submodule init
+      - git submodule update
+      - ./autogen.sh
+      - ./configure --with-pmgr
+  deploy:
+    artifactory:
+      image: athieriot/drone-artifactory
+      url: stretch-url
+      username: ${artifactory_user}
+      password: ${artifactory_user}
+      files:
+        - ../*.deb
