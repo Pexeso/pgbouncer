@@ -98,6 +98,7 @@ extern int cf_sbuf_len;
 #include "loader.h"
 #include "client.h"
 #include "server.h"
+#include "pmgr.h"
 #include "pooler.h"
 #include "proto.h"
 #include "objects.h"
@@ -183,6 +184,14 @@ const char *pga_ntop(const PgAddr *a, char *dst, int dstlen);
 const char *pga_str(const PgAddr *a, char *dst, int dstlen);
 const char *pga_details(const PgAddr *a, char *dst, int dstlen);
 int pga_cmp_addr(const PgAddr *a, const PgAddr *b);
+
+struct ListenSocket {
+	struct List node;
+	int fd;
+	bool active;
+	struct event ev;
+	PgAddr addr;
+};
 
 /*
  * Stats, kept per-pool.
@@ -389,6 +398,8 @@ struct PgSocket {
 
 /* main.c */
 extern int cf_daemon;
+extern bool cf_is_pmgr_worker;
+extern int cf_pmgr_workers;
 
 extern char *cf_config_file;
 extern char *cf_jobname;
