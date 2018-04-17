@@ -1,0 +1,16 @@
+Unit]
+Description=PGbouncer 1
+After=multi-user.target
+
+[Service]
+Type=simple
+WorkingDirectory=/etc/pgbouncer
+ExecStart=/usr/local/bin/pgbouncer /etc/pgbouncer/pgbouncer.ini
+Restart=always
+User=postgres
+StandardOutput=syslog
+StandardError=syslog
+LimitNOFILE=49152
+
+[Install]
+WantedBy=multi-user.target

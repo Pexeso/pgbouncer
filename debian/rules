@@ -10,3 +10,12 @@ export DEB_BUILD_MAINT_OPTIONS = hardening=+all
 
 override_dh_auto_clean:
 	if test -f config.mak; then $(MAKE) clean; fi
+
+override_dh_auto_configure:
+	dh_auto_configure -- \
+		--with-pmgr
+
+override_dh_installinit:
+	dh_systemd_enable -ppgbouncer --name=pgbouncer pgbouncer.service
+	dh_systemd_start -ppgbouncer --no-restart-on-upgrade
+
