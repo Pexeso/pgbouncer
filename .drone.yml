@@ -3,6 +3,7 @@ pipeline:
     group: build
     image: pexeso/pexeso-build-debian:9.3
     commands:
+      - apt-get update
       - apt-get install -y libevent-dev python-docutils devscripts build-essential lintian
       - git submodule init
       - git submodule update
@@ -12,7 +13,8 @@ pipeline:
     group: build
     image: pexeso/pexeso-build-ubuntu:16.04
     commands:
-      - apt-get install -y libevent-dev python-docutils devscripts build-essential lintian
+      - apt-get update
+      - apt-get install -y libevent-dev python-docutils devscripts build-essential lintian dh-systemd
       - git submodule init
       - git submodule update
       - ./autogen.sh
