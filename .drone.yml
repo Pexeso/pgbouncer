@@ -1,6 +1,5 @@
 pipeline:
   build-debian:
-    group: build
     image: pexeso/pexeso-build-debian:9.3
     commands:
       - apt-get update
@@ -11,8 +10,11 @@ pipeline:
       - ./configure --with-pmgr
       - make
       - make deb
+      - mkdir -p proto/debian/
+      - mv ../*.deb proto/debian/
+      - ls lR proto
+      - dpkg -c proto/debian/*.deb
   build-ubuntu:
-    group: build
     image: pexeso/pexeso-build-ubuntu:16.04
     commands:
       - apt-get update
@@ -23,3 +25,8 @@ pipeline:
       - ./configure --with-pmgr
       - make
       - make deb
+      - mkdir -p proto/ubuntu/
+      - mv ../*.deb proto/ubuntu/
+      - ls -lR proto
+      - dpkg -c proto/debian/*.deb
+
