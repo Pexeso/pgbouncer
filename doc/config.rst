@@ -20,6 +20,13 @@ If this option is set to an integer value greater than 1, the process manager wi
 
 Default: not set.
 
+pmgr_workers_port_start
+-----------------------
+
+When process manager is enabled, each worker is assigned a port starting from this number.
+
+Default: 33333.
+
 logfile
 -------
 

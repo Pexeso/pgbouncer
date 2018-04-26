@@ -170,8 +170,8 @@ static void pmgr_on_accept(int sock, short flags, void *arg)
 		goto cleanup;
 	}
 
-	log_info("new connection on %d, sending to worker %d",
-		 client_sock, worker->pid);
+	log_noise("new connection on %d, sending to worker %d",
+		  client_sock, worker->pid);
 	return;
 
 cleanup:
@@ -226,7 +226,7 @@ static void pmgr_on_write(int sock, short flags, void *arg)
 		return;
 	}
 
-	log_info("Client socket %d sent to worker", *client_sock);
+	log_noise("Client socket %d sent to worker", *client_sock);
 
 cleanup:
 	safe_close(*client_sock);
@@ -255,7 +255,7 @@ static void worker_on_accept(int sock, short flags, void *arg)
 		fatal_perror("event_add() failed");
 	}
 
-	log_info("Established connection to manager");
+	log_noise("Established connection to manager");
 }
 
 static void worker_on_read(int sock, short flags, void *arg)
@@ -304,7 +304,7 @@ static void worker_on_read(int sock, short flags, void *arg)
 		return;
 	}
 
-	log_info("New client socket %d from manager", client_sock);
+	log_noise("New client socket %d from manager", client_sock);
 
 	client = accept_client(client_sock, true);
 	if (!client) {
@@ -442,8 +442,8 @@ static bool connect_worker(struct Worker *worker)
 		goto fail;
 
 	worker->sock = sock;
-	log_info("pmgr connected to worker, pid=%d, sock=%d",
-		 worker->pid, worker->sock);
+	log_noise("pmgr connected to worker, pid=%d, sock=%d",
+		  worker->pid, worker->sock);
 	return true;
 
 fail:
@@ -481,7 +481,7 @@ static bool pmgr_setup(void)
 	atexit(pmgr_cleanup);
 
 	for (i = 0; i < cf_pmgr_workers; i++) {
-		cf_listen_port++;
+		cf_listen_port = cf_pmgr_workers_port_start++;
 
 		create_sockets(&socket_list);
 
@@ -559,8 +559,8 @@ void pmgr_run(void)
 		fatal("cf_reboot currently not supported");
 	if (cf_daemon)
 		fatal("cf_daemon currently not supported");
-	if (cf_logfile && *cf_logfile)
-		fatal("cf_logfile currently not supported");
+	if (cf_pidfile && *cf_pidfile)
+		fatal("cf_pidfile currently not supported");
 	if (!cf_unix_socket_dir || !*cf_unix_socket_dir)
 		fatal("cf_unix_socket_dir must be set");
 

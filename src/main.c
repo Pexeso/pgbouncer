@@ -66,6 +66,7 @@ static char *cf_username;
 char *cf_config_file;
 
 int cf_pmgr_workers;
+int cf_pmgr_workers_port_start;
 char *cf_listen_addr;
 int cf_listen_port;
 int cf_listen_backlog;
@@ -207,6 +208,7 @@ CF_ABS("conffile", CF_STR, cf_config_file, 0, NULL),
 CF_ABS("logfile", CF_STR, cf_logfile, 0, ""),
 CF_ABS("pidfile", CF_STR, cf_pidfile, CF_NO_RELOAD, ""),
 CF_ABS("pmgr_workers", CF_INT, cf_pmgr_workers, CF_NO_RELOAD, "0"),
+CF_ABS("pmgr_workers_port_start", CF_INT, cf_pmgr_workers_port_start, CF_NO_RELOAD, "33333"),
 CF_ABS("listen_addr", CF_STR, cf_listen_addr, CF_NO_RELOAD, ""),
 CF_ABS("listen_port", CF_INT, cf_listen_port, CF_NO_RELOAD, "6432"),
 CF_ABS("listen_backlog", CF_INT, cf_listen_backlog, CF_NO_RELOAD, "128"),
