@@ -35,7 +35,7 @@ If you are building from git, or are building for Windows, please see
 separate build instructions below.
 
 PMGR (process manager) suppoort
-===============================
+-------------------------------
 
 This feature allows pgbouncer to use multiprocessing for handling client
 connections. When enabled, pgbouncer will fork itself into a manager process
