@@ -34,6 +34,20 @@ When dependencies are installed just run::
 If you are building from git, or are building for Windows, please see
 separate build instructions below.
 
+PMGR (process manager) suppoort
+===============================
+
+This feature allows pgbouncer to use multiprocessing for handling client
+connections. When enabled, pgbouncer will fork itself into a manager process
+and multiple worker processes. The manager then waits for new connections on
+specified `listen_addr` and then sends the connected client socket to one of
+the workers to handle all the requests.
+
+To enable PMGR support `./configure` has a flag `--with-pmgr` (default value is no).
+
+For configuration see `doc/config.rst#section-pmgr`_.
+
+
 DNS lookup support
 ------------------
 

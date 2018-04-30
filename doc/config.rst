@@ -13,20 +13,6 @@ and "#" are not recognized when they appear later in the line.
 Generic settings
 ================
 
-pmgr_workers
-------------
-
-If this option is set to an integer value greater than 1, the process manager will be enabled. Process manager will fork itself into 1 manager and ``pmgr_workers`` worker processes delegating each newly connected client to one of the workers. When this option is specified ``unix_socket_dir`` must be specified and ``pidfile`` must not be specified. Daemonization and process takeover are not supported.
-
-Default: not set.
-
-pmgr_workers_port_start
------------------------
-
-When process manager is enabled, each worker is assigned a port starting from this number.
-
-Default: 33333.
-
 logfile
 -------
 
@@ -834,6 +820,38 @@ tcp_keepintvl
 Default: not set
 
 
+Section [pmgr]
+==============
+
+This section contains configuration options for process manager.
+
+enabled
+-------
+
+Turns on process manager.
+
+Default: 0
+
+workers
+-------
+
+How many workers will process manager create.
+
+Default: 2
+
+port_start
+----------
+
+Each worker is assigned a port starting at this value.
+
+For example, if the value is 33333 and there are two workers,
+first worker will use port 33333 and second worker will use port 33334.
+
+The port does not represent TCP port, it is only used in unix socket filename.
+
+Default: 33333
+
+
 Section [databases]
 ===================
 
@@ -958,6 +976,7 @@ like this::
 
 If the file name is not absolute path it is taken as relative to current
 working directory.
+
 
 Authentication file format
 ==========================
