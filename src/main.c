@@ -59,14 +59,16 @@ struct HBA *parsed_hba;
 
 int cf_daemon;
 int cf_pause_mode = P_NONE;
-bool cf_is_pmgr_worker = false;
 int cf_shutdown; /* 1 - wait for queries to finish, 2 - shutdown immediately */
 int cf_reboot;
 static char *cf_username;
 char *cf_config_file;
 
+bool cf_pmgr_is_worker = false;
+bool cf_pmgr_enabled;
 int cf_pmgr_workers;
-int cf_pmgr_workers_port_start;
+int cf_pmgr_port_start;
+
 char *cf_listen_addr;
 int cf_listen_port;
 int cf_listen_backlog;
@@ -207,8 +209,6 @@ CF_ABS("service_name", CF_STR, cf_jobname, CF_NO_RELOAD, NULL), /* alias for job
 CF_ABS("conffile", CF_STR, cf_config_file, 0, NULL),
 CF_ABS("logfile", CF_STR, cf_logfile, 0, ""),
 CF_ABS("pidfile", CF_STR, cf_pidfile, CF_NO_RELOAD, ""),
-CF_ABS("pmgr_workers", CF_INT, cf_pmgr_workers, CF_NO_RELOAD, "0"),
-CF_ABS("pmgr_workers_port_start", CF_INT, cf_pmgr_workers_port_start, CF_NO_RELOAD, "33333"),
 CF_ABS("listen_addr", CF_STR, cf_listen_addr, CF_NO_RELOAD, ""),
 CF_ABS("listen_port", CF_INT, cf_listen_port, CF_NO_RELOAD, "6432"),
 CF_ABS("listen_backlog", CF_INT, cf_listen_backlog, CF_NO_RELOAD, "128"),
@@ -297,10 +297,21 @@ CF_ABS("server_tls_ciphers", CF_STR, cf_server_tls_ciphers, CF_NO_RELOAD, "fast"
 {NULL}
 };
 
+static const struct CfKey pmgr_params [] = {
+CF_ABS("enabled", CF_BOOL, cf_pmgr_enabled, CF_NO_RELOAD, "0"),
+CF_ABS("workers", CF_INT, cf_pmgr_workers, CF_NO_RELOAD, "2"),
+CF_ABS("port_start", CF_INT, cf_pmgr_port_start, CF_NO_RELOAD, "33333"),
+
+{NULL}
+};
+
 static const struct CfSect config_sects [] = {
 	{
 		.sect_name = "pgbouncer",
 		.key_list = bouncer_params,
+	}, {
+		.sect_name = "pmgr",
+		.key_list = pmgr_params,
 	}, {
 		.sect_name = "databases",
 		.set_key = parse_database,
@@ -891,7 +902,11 @@ int main(int argc, char *argv[])
 	if (getuid() == 0)
 		fatal("PgBouncer should not run as root");
 
-	if (cf_pmgr_workers > 1)
+	log_info("cf_pmgr_enabled: %d", cf_pmgr_enabled);
+	log_info("cf_pmgr_workers: %d", cf_pmgr_workers);
+	log_info("cf_pmgr_port_start: %d", cf_pmgr_port_start);
+
+	if (cf_pmgr_enabled)
 		pmgr_run();
 
 	init_caches();
@@ -914,7 +929,7 @@ int main(int argc, char *argv[])
 			check_pidfile();
 		}
 	} else {
-		if (!cf_is_pmgr_worker && check_old_process_unix())
+		if (!cf_pmgr_is_worker && check_old_process_unix())
 			fatal("unix socket is in use, cannot continue");
 		check_pidfile();
 	}
@@ -935,7 +950,7 @@ int main(int argc, char *argv[])
 
 	if (did_takeover) {
 		takeover_finish();
-	} else if (cf_is_pmgr_worker) {
+	} else if (cf_pmgr_is_worker) {
 		pmgr_worker_setup();
 	} else {
 		pooler_setup();

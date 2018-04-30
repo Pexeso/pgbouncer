@@ -398,9 +398,11 @@ struct PgSocket {
 
 /* main.c */
 extern int cf_daemon;
-extern bool cf_is_pmgr_worker;
+
+extern bool cf_pmgr_is_worker;
+extern bool cf_pmgr_enabled;
 extern int cf_pmgr_workers;
-extern int cf_pmgr_workers_port_start;
+extern int cf_pmgr_port_start;
 
 extern char *cf_config_file;
 extern char *cf_jobname;

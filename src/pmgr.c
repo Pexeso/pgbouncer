@@ -127,9 +127,8 @@ static void close_sockets(struct StatList *sock_list)
 	while ((el = statlist_pop(sock_list)) != NULL) {
 		ls = container_of(el, struct ListenSocket, node);
 
-		if (ls->fd > 0) {
+		if (ls->fd > 0)
 			safe_close(ls->fd);
-		}
 		statlist_remove(sock_list, &ls->node);
 		free(ls);
 	}
@@ -399,7 +398,7 @@ static void accept_start(void)
 	struct ListenSocket *ls;
 	event_cb_t cb;
 
-	cb = cf_is_pmgr_worker ? worker_on_accept : pmgr_on_accept;
+	cb = cf_pmgr_is_worker ? worker_on_accept : pmgr_on_accept;
 
 	statlist_for_each(el, &socket_list) {
 		ls = container_of(el, struct ListenSocket, node);
@@ -481,7 +480,7 @@ static bool pmgr_setup(void)
 	atexit(pmgr_cleanup);
 
 	for (i = 0; i < cf_pmgr_workers; i++) {
-		cf_listen_port = cf_pmgr_workers_port_start++;
+		cf_listen_port = cf_pmgr_port_start++;
 
 		create_sockets(&socket_list);
 
@@ -489,7 +488,7 @@ static bool pmgr_setup(void)
 		if (pid < 0) {  /* This is error. */
 			fatal_perror("pmgr_setup");
 		} else if (pid == 0) {  /* This is worker. */
-			cf_is_pmgr_worker = true;
+			cf_pmgr_is_worker = true;
 			return false;
 		}
 
@@ -538,7 +537,7 @@ static bool pmgr_setup(void)
 
 static void pmgr_cleanup(void)
 {
-	if (!cf_is_pmgr_worker)
+	if (!cf_pmgr_is_worker)
 		kill(0, SIGINT);
 	cleanup_sockets(&socket_list);
 }
@@ -555,6 +554,8 @@ void pmgr_worker_setup(void)
 
 void pmgr_run(void)
 {
+	if (cf_pmgr_workers < 1)
+		fatal("pmgr must be configured with at least one worker");
 	if (cf_reboot)
 		fatal("cf_reboot currently not supported");
 	if (cf_daemon)
