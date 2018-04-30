@@ -45,7 +45,7 @@ the workers to handle all the requests.
 
 To enable PMGR support `./configure` has a flag `--with-pmgr` (default value is no).
 
-For configuration see `doc/config.rst#section-pmgr`_.
+`See configuration <doc/config.rst#section-pmgr>`_.
 
 
 DNS lookup support
