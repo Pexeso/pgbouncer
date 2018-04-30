@@ -569,14 +569,6 @@ void pmgr_worker_setup(void)
 
 void pmgr_run(void)
 {
-	if (cf_reboot)
-		fatal("cf_reboot currently not supported");
-	if (cf_daemon)
-		fatal("cf_daemon currently not supported");
-	if (cf_pidfile && *cf_pidfile)
-		fatal("cf_pidfile currently not supported");
-	if (!cf_unix_socket_dir || !*cf_unix_socket_dir)
-		fatal("cf_unix_socket_dir must be set");
 	if (!cf_pmgr_workers)
 		cf_pmgr_workers = num_cpus();
 

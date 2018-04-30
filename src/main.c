@@ -902,8 +902,21 @@ int main(int argc, char *argv[])
 	if (getuid() == 0)
 		fatal("PgBouncer should not run as root");
 
-	if (cf_pmgr_enabled)
+	if (cf_pmgr_enabled) {
+		if (cf_reboot)
+			fatal("cf_reboot currently not supported");
+		if (!cf_unix_socket_dir || !*cf_unix_socket_dir)
+			fatal("cf_unix_socket_dir must be set");
+
+		check_old_process_unix();
+		check_pidfile();
+
+		if (cf_daemon)
+			go_daemon();
+
+		write_pidfile();
 		pmgr_run();
+	}
 
 	init_caches();
 	logging_prefix_cb = log_socket_prefix;
@@ -915,23 +928,25 @@ int main(int argc, char *argv[])
 
 	admin_setup();
 
-	if (cf_reboot) {
-		if (check_old_process_unix()) {
-			takeover_part1();
-			did_takeover = true;
+	if (!cf_pmgr_is_worker) {
+		if (cf_reboot) {
+			if (check_old_process_unix()) {
+				takeover_part1();
+				did_takeover = true;
+			} else {
+				log_info("old process not found, try to continue normally");
+				cf_reboot = 0;
+				check_pidfile();
+			}
 		} else {
-			log_info("old process not found, try to continue normally");
-			cf_reboot = 0;
+			if (check_old_process_unix())
+				fatal("unix socket is in use, cannot continue");
 			check_pidfile();
 		}
-	} else {
-		if (!cf_pmgr_is_worker && check_old_process_unix())
-			fatal("unix socket is in use, cannot continue");
-		check_pidfile();
-	}
 
-	if (cf_daemon)
-		go_daemon();
+		if (cf_daemon)
+			go_daemon();
+	}
 
 	/* initialize subsystems, order important */
 	srandom(time(NULL) ^ getpid());
@@ -944,15 +959,16 @@ int main(int argc, char *argv[])
 
 	pam_init();
 
-	if (did_takeover) {
-		takeover_finish();
-	} else if (cf_pmgr_is_worker) {
+	if (cf_pmgr_is_worker) {
 		pmgr_worker_setup();
 	} else {
-		pooler_setup();
+		if (did_takeover) {
+			takeover_finish();
+		} else {
+			pooler_setup();
+		}
+		write_pidfile();
 	}
-
-	write_pidfile();
 
 	log_info("process up: %s, libevent %s (%s), adns: %s, tls: %s", PACKAGE_STRING,
 		 event_get_version(), event_get_method(), adns_get_backend(),
