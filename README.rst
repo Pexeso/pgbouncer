@@ -40,7 +40,7 @@ PMGR (process manager) support
 This feature allows pgbouncer to use multiprocessing for handling client
 connections. When enabled, pgbouncer will fork itself into a manager process
 and multiple worker processes. The manager then waits for new connections on
-specified `listen_addr` and then sends the connected client socket to one of
+the specified `listen_addr` and then sends the connected client socket to one of
 the workers to handle all the requests.
 
 To enable PMGR support `./configure` has a flag `--with-pmgr` (default value is no).
