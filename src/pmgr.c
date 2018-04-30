@@ -24,6 +24,7 @@
 
 #ifdef HAVE_PMGR
 
+#include <unistd.h>
 #include <sys/wait.h>
 
 #include <event2/thread.h>
@@ -33,6 +34,7 @@
 
 
 /* Helpers */
+static int num_cpus(void);
 static struct Worker *next_worker(void);
 static void close_sockets(struct StatList *sock_list);
 
@@ -104,6 +106,19 @@ static struct PMgr pmgr;
 /*****************************************************************************
  * Helpers
  *****************************************************************************/
+
+#ifdef _SC_NPROCESSORS_ONLN
+static int num_cpus(void)
+{
+	return sysconf(_SC_NPROCESSORS_ONLN);
+}
+#else
+static int num_cpus(void)
+{
+	log_warning("failed to retrieve number of available CPUs");
+	return 1;
+}
+#endif /* _SC_NPROCESSORS_ONLN */
 
 static struct Worker *next_worker(void)
 {
@@ -554,8 +569,6 @@ void pmgr_worker_setup(void)
 
 void pmgr_run(void)
 {
-	if (cf_pmgr_workers < 1)
-		fatal("pmgr must be configured with at least one worker");
 	if (cf_reboot)
 		fatal("cf_reboot currently not supported");
 	if (cf_daemon)
@@ -564,6 +577,10 @@ void pmgr_run(void)
 		fatal("cf_pidfile currently not supported");
 	if (!cf_unix_socket_dir || !*cf_unix_socket_dir)
 		fatal("cf_unix_socket_dir must be set");
+	if (!cf_pmgr_workers)
+		cf_pmgr_workers = num_cpus();
+
+	log_info("using %d cpus", cf_pmgr_workers);
 
 	if (!pmgr_setup())
 		return; /* This is worker. */

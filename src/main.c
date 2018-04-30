@@ -299,7 +299,7 @@ CF_ABS("server_tls_ciphers", CF_STR, cf_server_tls_ciphers, CF_NO_RELOAD, "fast"
 
 static const struct CfKey pmgr_params [] = {
 CF_ABS("enabled", CF_BOOL, cf_pmgr_enabled, CF_NO_RELOAD, "0"),
-CF_ABS("workers", CF_INT, cf_pmgr_workers, CF_NO_RELOAD, "2"),
+CF_ABS("workers", CF_INT, cf_pmgr_workers, CF_NO_RELOAD, "0"),
 CF_ABS("port_start", CF_INT, cf_pmgr_port_start, CF_NO_RELOAD, "33333"),
 
 {NULL}
@@ -901,10 +901,6 @@ int main(int argc, char *argv[])
 	/* disallow running as root */
 	if (getuid() == 0)
 		fatal("PgBouncer should not run as root");
-
-	log_info("cf_pmgr_enabled: %d", cf_pmgr_enabled);
-	log_info("cf_pmgr_workers: %d", cf_pmgr_workers);
-	log_info("cf_pmgr_port_start: %d", cf_pmgr_port_start);
 
 	if (cf_pmgr_enabled)
 		pmgr_run();
