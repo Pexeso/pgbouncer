@@ -835,9 +835,11 @@ Default: 0
 workers
 -------
 
-How many workers will process manager create.
+How many workers will process manager create. When 0 is specified, the number
+of worker processes will be equal to the number of available CPUs. If unable to
+determine number of CPUs only one worker will be used.
 
-Default: 2
+Default: 0
 
 port_start
 ----------
