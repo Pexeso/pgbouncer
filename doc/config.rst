@@ -830,7 +830,7 @@ enabled
 
 Turns on process manager.
 
-Default: 0
+Default: 1
 
 workers
 -------
