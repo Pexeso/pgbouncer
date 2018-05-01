@@ -17,8 +17,8 @@
  */
 
 /*
- * Process manager.
+ * Multiprocessing.
  */
 
-void pmgr_run(void);
-void pmgr_worker_setup(void);
+void smp_run(void);
+void smp_worker_setup(void);

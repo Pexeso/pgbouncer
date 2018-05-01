@@ -820,7 +820,7 @@ tcp_keepintvl
 Default: not set
 
 
-Section [pmgr]
+Section [smp]
 ==============
 
 This section contains configuration options for process manager.
@@ -830,7 +830,7 @@ enabled
 
 Turns on process manager.
 
-Default: 0
+Default: 1
 
 workers
 -------

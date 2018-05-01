@@ -1,17 +1,22 @@
 
-PgBouncer
-=========
+PgBouncer with SMP
+===================
 
-Lightweight connection pooler for PostgreSQL.
+This is a fork of the pgbouncer that adds support for multiprocessing.
 
-Homepage
-    https://pgbouncer.github.io
+When enabled pgbouncer will fork itself into a manager process
+and multiple worker processes. The manager then waits for new connections on
+the specified `listen_addr` and then sends the connected client socket to one of
+the workers to handle all the requests.
 
-Sources, bugtracking
-    https://github.com/pgbouncer/pgbouncer
+`See configuration <doc/config.rst#section-smp>`_.
 
 Building
 ---------
+
+SMP is enabled by default, but can be disabled by specifying::
+
+    $ ./configure --without-smp ...
 
 PgBouncer depends on few things to get compiled:
 
@@ -33,20 +38,6 @@ When dependencies are installed just run::
 
 If you are building from git, or are building for Windows, please see
 separate build instructions below.
-
-PMGR (process manager) support
-------------------------------
-
-This feature allows pgbouncer to use multiprocessing for handling client
-connections. When enabled, pgbouncer will fork itself into a manager process
-and multiple worker processes. The manager then waits for new connections on
-the specified `listen_addr` and then sends the connected client socket to one of
-the workers to handle all the requests.
-
-To enable PMGR support `./configure` has a flag `--with-pmgr` (default value is no).
-
-`See configuration <doc/config.rst#section-pmgr>`_.
-
 
 DNS lookup support
 ------------------

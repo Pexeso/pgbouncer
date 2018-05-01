@@ -17,12 +17,12 @@
  */
 
 /*
- * Process Manager.
+ * Multiprocessing.
  */
 
 #include "bouncer.h"
 
-#ifdef HAVE_PMGR
+#ifdef HAVE_SMP
 
 #include <unistd.h>
 #include <sys/wait.h>
@@ -39,8 +39,8 @@ static struct Worker *next_worker(void);
 static void close_sockets(struct StatList *sock_list);
 
 /* Event Handlers */
-static void pmgr_on_accept(int sock, short flags, void *arg);
-static void pmgr_on_write(int sock, short flags, void *arg);
+static void manager_on_accept(int sock, short flags, void *arg);
+static void manager_on_write(int sock, short flags, void *arg);
 static void worker_on_accept(int sock, short flags, void *arg);
 static void worker_on_read(int sock, short flags, void *arg);
 
@@ -54,8 +54,8 @@ static void on_sigint(int sig, short flags, void *arg);
 /* Setup & Cleanup */
 static void signals_setup(void);
 static void accept_start(void);
-static bool pmgr_setup(void);
-static void pmgr_cleanup(void);
+static bool smp_setup(void);
+static void smp_cleanup(void);
 
 
 /*****************************************************************************
@@ -78,7 +78,7 @@ struct Worker {
 /*
  * Used by worker, stores info about manager.
  */
-struct PMgr {
+struct Manager {
 	struct event ev_read;
 	int sock;
 };
@@ -91,8 +91,8 @@ struct PMgr {
 static STATLIST(worker_list);
 static STATLIST(socket_list);
 
-static char *cf_pmgr_listen_addr;
-static int cf_pmgr_listen_port;
+static char *cf_smp_listen_addr;
+static int cf_smp_listen_port;
 
 static struct event ev_sigusr1;
 static struct event ev_sigusr2;
@@ -100,7 +100,7 @@ static struct event ev_sighup;
 static struct event ev_sigterm;
 static struct event ev_sigint;
 
-static struct PMgr pmgr;
+static struct Manager manager;
 
 
 /*****************************************************************************
@@ -154,7 +154,7 @@ static void close_sockets(struct StatList *sock_list)
  * Event Handlers
  *****************************************************************************/
 
-static void pmgr_on_accept(int sock, short flags, void *arg)
+static void manager_on_accept(int sock, short flags, void *arg)
 {
 	struct Worker *worker;
 	int client_sock;
@@ -177,7 +177,7 @@ static void pmgr_on_accept(int sock, short flags, void *arg)
 	worker = next_worker();
 
 	event_set(&worker->ev_write, worker->sock, EV_WRITE,
-		  pmgr_on_write, on_write_arg);
+		  manager_on_write, on_write_arg);
 
 	if (event_add(&worker->ev_write, NULL) < 0) {
 		log_warning("event_add() failed: %s", strerror(errno));
@@ -195,7 +195,7 @@ cleanup:
 		free(on_write_arg);
 }
 
-static void pmgr_on_write(int sock, short flags, void *arg)
+static void manager_on_write(int sock, short flags, void *arg)
 {
 	int *client_sock = arg;
 	struct Worker *worker;
@@ -231,7 +231,7 @@ static void pmgr_on_write(int sock, short flags, void *arg)
 			  *client_sock, strerror(errno), worker->pid);
 
 		event_set(&worker->ev_write, worker->sock, EV_WRITE,
-			  pmgr_on_write, client_sock);
+			  manager_on_write, client_sock);
 
 		if (event_add(&worker->ev_write, NULL) < 0) {
 			log_error("event_add() failed: %s", strerror(errno));
@@ -254,18 +254,18 @@ cleanup:
  */
 static void worker_on_accept(int sock, short flags, void *arg)
 {
-	pmgr.sock = safe_accept(sock, NULL, NULL);
-	if (pmgr.sock < 0) {
+	manager.sock = safe_accept(sock, NULL, NULL);
+	if (manager.sock < 0) {
 		if (errno == EAGAIN || errno == EWOULDBLOCK)
 			return;
 		fatal_perror("accept() failed");
 	}
 
-	event_set(&pmgr.ev_read, pmgr.sock, EV_READ | EV_PERSIST,
+	event_set(&manager.ev_read, manager.sock, EV_READ | EV_PERSIST,
 		  worker_on_read, NULL);
 
-	if (event_add(&pmgr.ev_read, NULL) < 0) {
-		safe_close(pmgr.sock);
+	if (event_add(&manager.ev_read, NULL) < 0) {
+		safe_close(manager.sock);
 		fatal_perror("event_add() failed");
 	}
 
@@ -413,7 +413,7 @@ static void accept_start(void)
 	struct ListenSocket *ls;
 	event_cb_t cb;
 
-	cb = cf_pmgr_is_worker ? worker_on_accept : pmgr_on_accept;
+	cb = cf_smp_is_worker ? worker_on_accept : manager_on_accept;
 
 	statlist_for_each(el, &socket_list) {
 		ls = container_of(el, struct ListenSocket, node);
@@ -456,7 +456,7 @@ static bool connect_worker(struct Worker *worker)
 		goto fail;
 
 	worker->sock = sock;
-	log_noise("pmgr connected to worker, pid=%d, sock=%d",
+	log_noise("manager connected to worker, pid=%d, sock=%d",
 		  worker->pid, worker->sock);
 	return true;
 
@@ -468,7 +468,7 @@ fail:
 	return false;
 }
 
-static bool pmgr_setup(void)
+static bool smp_setup(void)
 {
 	int i;
 	pid_t pid;
@@ -479,8 +479,8 @@ static bool pmgr_setup(void)
 	 * Keep original value since the create_sockets() that's going to be
 	 * called for each worker uses these global variables.
 	 */
-	cf_pmgr_listen_addr = cf_listen_addr;
-	cf_pmgr_listen_port = cf_listen_port;
+	cf_smp_listen_addr = cf_listen_addr;
+	cf_smp_listen_port = cf_listen_port;
 
 	/*
 	 * We don't want the workers to listen on any TCP connections,
@@ -492,25 +492,25 @@ static bool pmgr_setup(void)
 	 * Make sure the listen sockets are removed on exit. Call this before
 	 * forking since it's safe for workers to inherit the registration.
 	 */
-	atexit(pmgr_cleanup);
+	atexit(smp_cleanup);
 
-	for (i = 0; i < cf_pmgr_workers; i++) {
-		cf_listen_port = cf_pmgr_port_start++;
+	for (i = 0; i < cf_smp_workers; i++) {
+		cf_listen_port = cf_smp_port_start++;
 
 		create_sockets(&socket_list);
 
 		pid = fork();
 		if (pid < 0) {  /* This is error. */
-			fatal_perror("pmgr_setup");
+			fatal_perror("smp_setup");
 		} else if (pid == 0) {  /* This is worker. */
-			cf_pmgr_is_worker = true;
+			cf_smp_is_worker = true;
 			return false;
 		}
 
 		/* This is manager. */
 		worker = malloc(sizeof(*worker));
 		if (!worker)
-			fatal_perror("pmgr_setup");
+			fatal_perror("smp_setup");
 		worker->pid = pid;
 		worker->port = cf_listen_port;
 		worker->sock = -1;
@@ -527,8 +527,8 @@ static bool pmgr_setup(void)
 	 * Make sure the variables are back at their original value
 	 * when calling create_sockets() on the manager.
 	 */
-	cf_listen_addr = cf_pmgr_listen_addr;
-	cf_listen_port = cf_pmgr_listen_port;
+	cf_listen_addr = cf_smp_listen_addr;
+	cf_listen_port = cf_smp_listen_port;
 
 	/*
 	 * Establish connection to the workers. We want to do it here
@@ -550,9 +550,9 @@ static bool pmgr_setup(void)
 	return true;
 }
 
-static void pmgr_cleanup(void)
+static void smp_cleanup(void)
 {
-	if (!cf_pmgr_is_worker)
+	if (!cf_smp_is_worker)
 		kill(0, SIGINT);
 	cleanup_sockets(&socket_list);
 }
@@ -562,19 +562,19 @@ static void pmgr_cleanup(void)
  * Public
  *****************************************************************************/
 
-void pmgr_worker_setup(void)
+void smp_worker_setup(void)
 {
 	accept_start();
 }
 
-void pmgr_run(void)
+void smp_run(void)
 {
-	if (!cf_pmgr_workers)
-		cf_pmgr_workers = num_cpus();
+	if (!cf_smp_workers)
+		cf_smp_workers = num_cpus();
 
-	log_info("using %d cpus", cf_pmgr_workers);
+	log_info("using %d cpus", cf_smp_workers);
 
-	if (!pmgr_setup())
+	if (!smp_setup())
 		return; /* This is worker. */
 
 	while (cf_shutdown < 2)
@@ -585,16 +585,16 @@ void pmgr_run(void)
 	exit(0);
 }
 
-#else /* !HAVE_PMGR */
+#else /* !HAVE_SMP */
 
-void pmgr_worker_setup(void)
+void smp_worker_setup(void)
 {
-	fatal("PMGR not supported");
+	fatal("SMP not supported");
 }
 
-void pmgr_run(void)
+void smp_run(void)
 {
-	fatal("PMGR not supported");
+	fatal("SMP not supported");
 }
 
 #endif
