@@ -16,7 +16,7 @@ Building
 
 SMP is enabled by default, but can be disabled by specifying::
 
-    $ ./configure --without-smp` ...
+    $ ./configure --without-smp ...
 
 PgBouncer depends on few things to get compiled:
 
