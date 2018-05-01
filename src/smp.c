@@ -39,8 +39,8 @@ static struct Worker *next_worker(void);
 static void close_sockets(struct StatList *sock_list);
 
 /* Event Handlers */
-static void smp_on_accept(int sock, short flags, void *arg);
-static void smp_on_write(int sock, short flags, void *arg);
+static void manager_on_accept(int sock, short flags, void *arg);
+static void manager_on_write(int sock, short flags, void *arg);
 static void worker_on_accept(int sock, short flags, void *arg);
 static void worker_on_read(int sock, short flags, void *arg);
 
@@ -177,7 +177,7 @@ static void manager_on_accept(int sock, short flags, void *arg)
 	worker = next_worker();
 
 	event_set(&worker->ev_write, worker->sock, EV_WRITE,
-		  smp_on_write, on_write_arg);
+		  manager_on_write, on_write_arg);
 
 	if (event_add(&worker->ev_write, NULL) < 0) {
 		log_warning("event_add() failed: %s", strerror(errno));
