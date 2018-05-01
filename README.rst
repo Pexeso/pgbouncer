@@ -2,7 +2,7 @@
 PgBouncer with SMP
 ===================
 
-This is a fork of the pgbouncer repo that adds support for multiprocessing.
+This is a fork of the pgbouncer that adds support for multiprocessing.
 
 When enabled pgbouncer will fork itself into a manager process
 and multiple worker processes. The manager then waits for new connections on
