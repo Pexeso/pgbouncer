@@ -54,20 +54,20 @@ AC_CHECK_FUNCS(lstat)
 dnl Find libevent
 AC_USUAL_LIBEVENT
 
-dnl Check for process manager support
-pmgr_support=no
-AC_ARG_WITH(pmgr,
-  AC_HELP_STRING([--with-pmgr],[Enable process manager]),
-  [ PMGR=
+dnl Check for multiprocessing support
+smp_support=yes
+AC_ARG_WITH(smp,
+  AC_HELP_STRING([--with-smp],[Enable multiprocessing]),
+  [ SMP=
     if test "$withval" != no; then
         have_pthreads=no
         AC_CHECK_HEADERS(pthread.h, [have_pthreads=yes])
         AC_SEARCH_LIBS(pthread_create, pthread, [], [have_pthreads=no])
         if test x"${have_pthreads}" != xyes; then
-           AC_MSG_ERROR([pthread library should be available for pmgr support])
+           AC_MSG_ERROR([pthread library should be available for smp support])
         else
-           pmgr_support=yes
-           AC_DEFINE(HAVE_PMGR, 1, [pmgr support])
+           smp_support=yes
+           AC_DEFINE(HAVE_SMP, 1, [smp support])
         fi
     fi
   ], [])
@@ -224,5 +224,5 @@ echo "  evdns = $use_evdns"
 echo "  udns = $use_udns"
 echo "  tls = $tls_support"
 echo "  PAM = $pam_support"
-echo "  pmgr = $pmgr_support"
+echo "  smp = $smp_support"
 echo ""

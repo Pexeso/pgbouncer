@@ -13,7 +13,7 @@ override_dh_auto_clean:
 
 override_dh_auto_configure:
 	dh_auto_configure -- \
-		--with-pmgr
+		--with-smp
 
 override_dh_installinit:
 	dh_systemd_enable -ppgbouncer --name=pgbouncer pgbouncer.service

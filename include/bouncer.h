@@ -98,7 +98,7 @@ extern int cf_sbuf_len;
 #include "loader.h"
 #include "client.h"
 #include "server.h"
-#include "pmgr.h"
+#include "smp.h"
 #include "pooler.h"
 #include "proto.h"
 #include "objects.h"
@@ -399,10 +399,10 @@ struct PgSocket {
 /* main.c */
 extern int cf_daemon;
 
-extern bool cf_pmgr_is_worker;
-extern bool cf_pmgr_enabled;
-extern int cf_pmgr_workers;
-extern int cf_pmgr_port_start;
+extern bool cf_smp_is_worker;
+extern bool cf_smp_enabled;
+extern int cf_smp_workers;
+extern int cf_smp_port_start;
 
 extern char *cf_config_file;
 extern char *cf_jobname;
