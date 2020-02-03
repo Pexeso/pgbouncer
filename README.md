@@ -1,14 +1,19 @@
 PgBouncer
 =========
 
-Lightweight connection pooler for PostgreSQL.
+This is a fork of the pgbouncer that adds support for multiprocessing. It is based on the 1.12.0 version of pgbouncer.
 
-Homepage: <https://www.pgbouncer.org/>
-
-Sources, bug tracking: <https://github.com/pgbouncer/pgbouncer>
+When enabled pgbouncer will fork itself into a manager process
+and multiple worker processes. The manager then waits for new connections on
+the specified `listen_addr` and then sends the connected client socket to one of
+the workers to handle all the requests.
 
 Building
 ---------
+
+SMP is enabled by default, but can be disabled by specifying:
+
+    $ ./configure --without-smp ...
 
 PgBouncer depends on few things to get compiled:
 

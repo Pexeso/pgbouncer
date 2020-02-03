@@ -806,6 +806,36 @@ Default: not set
 Default: not set
 
 
+## Section [smp]
+
+This section contains configuration options for process manager.
+
+### enabled
+
+Turns on process manager.
+
+Default: 1
+
+### workers
+
+How many workers will process manager create. When 0 is specified, the number
+of worker processes will be equal to the number of available CPUs. If unable to
+determine number of CPUs only one worker will be used.
+
+Default: 0
+
+### port_start
+
+Each worker is assigned a port starting at this value.
+
+For example, if the value is 33333 and there are two workers,
+first worker will use port 33333 and second worker will use port 33334.
+
+The port does not represent TCP port, it is only used in unix socket filename.
+
+Default: 33333
+
+
 ## Section [databases]
 
 This contains key=value pairs where the key will be taken as a database name and the

@@ -56,6 +56,27 @@ AC_CHECK_FUNCS(lstat)
 dnl Find libevent
 PKG_CHECK_MODULES(LIBEVENT, libevent)
 
+dnl Check for multiprocessing support
+smp_support=yes
+AC_ARG_WITH(smp,
+  AC_HELP_STRING([--with-smp],[Enable multiprocessing]),
+  [ if test "$withval" == no; then
+      smp_support=no
+    fi
+  ], [])
+
+if test "$smp_support" = "yes"; then
+  have_pthreads=no
+  AC_CHECK_HEADERS(pthread.h, [have_pthreads=yes])
+  AC_SEARCH_LIBS(pthread_create, pthread, [], [have_pthreads=no])
+  if test x"${have_pthreads}" != xyes; then
+    AC_MSG_ERROR([pthread library should be available for smp support])
+  else
+    smp_support=yes
+    AC_DEFINE(HAVE_SMP, 1, [smp support])
+  fi
+fi
+
 dnl Check for PAM authentication support
 pam_support=no
 AC_ARG_WITH(pam,
@@ -211,6 +232,7 @@ elif test "$ac_cv_usual_glibc_gaia" = "yes"; then
 else
   echo "  adns = compat"
 fi
+echo "  smp  = $smp_support"
 echo "  pam  = $pam_support"
 echo "  tls  = $tls_support"
 echo ""

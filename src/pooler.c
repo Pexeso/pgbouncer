@@ -24,14 +24,6 @@
 
 #include <usual/netdb.h>
 
-struct ListenSocket {
-	struct List node;
-	int fd;
-	bool active;
-	struct event ev;
-	PgAddr addr;
-};
-
 static STATLIST(sock_list);
 
 /* hints for getaddrinfo(listen_addr) */
@@ -53,8 +45,7 @@ static struct timeval err_timeout = {5, 0};
 
 static void tune_accept(int sock, bool on);
 
-/* atexit() cleanup func */
-static void cleanup_sockets(void)
+void cleanup_sockets(struct StatList *sock_list)
 {
 	struct ListenSocket *ls;
 	struct List *el;
@@ -79,10 +70,31 @@ static void cleanup_sockets(void)
 	}
 }
 
+void create_sockets(struct StatList *sock_list)
+{
+	bool ok;
+	struct ListenSocket *ls;
+
+	ok = parse_word_list(cf_listen_addr, parse_addr, sock_list);
+	if (!ok)
+		fatal("failed to parse listen_addr list: %s", cf_listen_addr);
+
+	if (cf_unix_socket_dir && *cf_unix_socket_dir) {
+		ls = create_unix_socket(cf_unix_socket_dir, cf_listen_port);
+		if (ls)
+			statlist_append(&sock_list, &ls->node);
+	}
+}
+
+static void atexit_cb(void)
+{
+	cleanup_sockets(&sock_list);
+}
+
 /*
  * initialize another listening socket.
  */
-static bool add_listen(int af, const struct sockaddr *sa, int salen)
+static struct ListenSocket *add_listen(int af, const struct sockaddr *sa, int salen)
 {
 	struct ListenSocket *ls;
 	int sock, res;
@@ -182,8 +194,7 @@ static bool add_listen(int af, const struct sockaddr *sa, int salen)
 	}
 
 	log_info("listening on %s", sa2str(sa, buf, sizeof(buf)));
-	statlist_append(&sock_list, &ls->node);
-	return true;
+	return ls;
 
 failed:
 	log_warning("cannot listen on %s: %s(): %s",
@@ -191,10 +202,10 @@ failed:
 		    errpos, strerror(errno));
 	if (sock >= 0)
 		safe_close(sock);
-	return false;
+	return NULL;
 }
 
-static void create_unix_socket(const char *socket_dir, int listen_port)
+static struct ListenSocket *create_unix_socket(const char *socket_dir, int listen_port)
 {
 	struct sockaddr_un un;
 	int res;
@@ -216,7 +227,7 @@ static void create_unix_socket(const char *socket_dir, int listen_port)
 	/* expect old bouncer gone */
 	unlink(un.sun_path);
 
-	add_listen(AF_UNIX, (const struct sockaddr *)&un, sizeof(un));
+	return add_listen(AF_UNIX, (const struct sockaddr *)&un, sizeof(un));
 }
 
 /*
@@ -438,7 +449,8 @@ static bool parse_addr(void *arg, const char *addr)
 	int res;
 	char service[64];
 	struct addrinfo *ai, *gaires = NULL;
-	bool ok;
+	ListenSocket *ls;
+	struct StatList *sock_list = arg;
 
 	if (!*addr)
 		return true;
@@ -453,9 +465,12 @@ static bool parse_addr(void *arg, const char *addr)
 	}
 
 	for (ai = gaires; ai; ai = ai->ai_next) {
-		ok = add_listen(ai->ai_family, ai->ai_addr, ai->ai_addrlen);
+		ls = add_listen(ai->ai_family, ai->ai_addr, ai->ai_addrlen);
+		if (ls)
+			statlist_append(&sock_list, &ls->node);
+
 		/* it's unclear whether all or only first result should be used */
-		if (0 && ok)
+		if (0 && ls)
 			break;
 	}
 
@@ -466,22 +481,15 @@ static bool parse_addr(void *arg, const char *addr)
 /* listen on socket - should happen after all other initializations */
 void pooler_setup(void)
 {
-	bool ok;
 	static int init_done = 0;
 
 	if (!init_done) {
 		/* remove socket on shutdown */
-		atexit(cleanup_sockets);
+		atexit(atexit_cb);
 		init_done = 1;
 	}
 
-	ok = parse_word_list(cf_listen_addr, parse_addr, NULL);
-	if (!ok)
-		fatal("failed to parse listen_addr list: %s", cf_listen_addr);
-
-	if (cf_unix_socket_dir && *cf_unix_socket_dir)
-		create_unix_socket(cf_unix_socket_dir, cf_listen_port);
-
+	create_sockets(&sock_list);
 	if (!statlist_count(&sock_list))
 		fatal("nowhere to listen on");
 

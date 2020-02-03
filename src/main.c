@@ -64,6 +64,11 @@ int cf_reboot;
 static char *cf_username;
 char *cf_config_file;
 
+bool cf_smp_is_worker = false;
+bool cf_smp_enabled;
+int cf_smp_workers;
+int cf_smp_port_start;
+
 char *cf_listen_addr;
 int cf_listen_port;
 int cf_listen_backlog;
@@ -301,10 +306,21 @@ CF_ABS("server_tls_ciphers", CF_STR, cf_server_tls_ciphers, CF_NO_RELOAD, "fast"
 {NULL}
 };
 
+static const struct CfKey smp_params [] = {
+CF_ABS("enabled", CF_BOOL, cf_smp_enabled, CF_NO_RELOAD, "1"),
+CF_ABS("workers", CF_INT, cf_smp_workers, CF_NO_RELOAD, "0"),
+CF_ABS("port_start", CF_INT, cf_smp_port_start, CF_NO_RELOAD, "33333"),
+
+{NULL}
+};
+
 static const struct CfSect config_sects [] = {
 	{
 		.sect_name = "pgbouncer",
 		.key_list = bouncer_params,
+	}, {
+		.sect_name = "smp",
+		.key_list = smp_params,
 	}, {
 		.sect_name = "databases",
 		.set_key = parse_database,
