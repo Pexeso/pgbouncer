@@ -915,6 +915,9 @@ int main(int argc, char *argv[])
 	admin_setup();
 
 	if (cf_reboot) {
+		if (cf_smp_enabled)
+			fatal("cf_reboot currently not supported");
+
 		if (check_old_process_unix()) {
 			takeover_part1();
 			did_takeover = true;
@@ -936,6 +939,12 @@ int main(int argc, char *argv[])
 	 * go_daemon() so that output goes to log file */
 	check_limits();
 
+	if (cf_smp_enabled) {
+		write_pidfile();
+		smp_run();
+	}
+
+
 	/* initialize subsystems, order important */
 	srandom(time(NULL) ^ getpid());
 	if (!event_init())
@@ -947,13 +956,17 @@ int main(int argc, char *argv[])
 
 	pam_init();
 
-	if (did_takeover) {
-		takeover_finish();
+	if (cf_smp_is_worker) {
+		smp_worker_setup();
 	} else {
-		pooler_setup();
-	}
+		if (did_takeover) {
+			takeover_finish();
+		} else {
+			pooler_setup();
+		}
 
-	write_pidfile();
+		write_pidfile();
+	}
 
 	log_info("process up: %s, libevent %s (%s), adns: %s, tls: %s", PACKAGE_STRING,
 		 event_get_version(), event_get_method(), adns_get_backend(),

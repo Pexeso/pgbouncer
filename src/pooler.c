@@ -44,6 +44,8 @@ static struct event ev_err;
 static struct timeval err_timeout = {5, 0};
 
 static void tune_accept(int sock, bool on);
+static bool parse_addr(void *arg, const char *addr);
+static struct ListenSocket *create_unix_socket(const char *socket_dir, int listen_port);
 
 void cleanup_sockets(struct StatList *sock_list)
 {
@@ -54,7 +56,7 @@ void cleanup_sockets(struct StatList *sock_list)
 	if (cf_pause_mode == P_SUSPEND)
 		return;
 
-	while ((el = statlist_pop(&sock_list)) != NULL) {
+	while ((el = statlist_pop(sock_list)) != NULL) {
 		ls = container_of(el, struct ListenSocket, node);
 		if (ls->fd > 0) {
 			safe_close(ls->fd);
@@ -65,7 +67,7 @@ void cleanup_sockets(struct StatList *sock_list)
 			snprintf(buf, sizeof(buf), "%s/.s.PGSQL.%d", cf_unix_socket_dir, cf_listen_port);
 			unlink(buf);
 		}
-		statlist_remove(&sock_list, &ls->node);
+		statlist_remove(sock_list, &ls->node);
 		free(ls);
 	}
 }
@@ -75,14 +77,16 @@ void create_sockets(struct StatList *sock_list)
 	bool ok;
 	struct ListenSocket *ls;
 
-	ok = parse_word_list(cf_listen_addr, parse_addr, sock_list);
-	if (!ok)
-		fatal("failed to parse listen_addr list: %s", cf_listen_addr);
+	if (cf_listen_addr && *cf_listen_addr) {
+		ok = parse_word_list(cf_listen_addr, parse_addr, sock_list);
+		if (!ok)
+			fatal("failed to parse listen_addr list: %s", cf_listen_addr);
+	}
 
 	if (cf_unix_socket_dir && *cf_unix_socket_dir) {
 		ls = create_unix_socket(cf_unix_socket_dir, cf_listen_port);
 		if (ls)
-			statlist_append(&sock_list, &ls->node);
+			statlist_append(sock_list, &ls->node);
 	}
 }
 
@@ -449,7 +453,7 @@ static bool parse_addr(void *arg, const char *addr)
 	int res;
 	char service[64];
 	struct addrinfo *ai, *gaires = NULL;
-	ListenSocket *ls;
+	struct ListenSocket *ls;
 	struct StatList *sock_list = arg;
 
 	if (!*addr)
@@ -467,7 +471,7 @@ static bool parse_addr(void *arg, const char *addr)
 	for (ai = gaires; ai; ai = ai->ai_next) {
 		ls = add_listen(ai->ai_family, ai->ai_addr, ai->ai_addrlen);
 		if (ls)
-			statlist_append(&sock_list, &ls->node);
+			statlist_append(sock_list, &ls->node);
 
 		/* it's unclear whether all or only first result should be used */
 		if (0 && ls)

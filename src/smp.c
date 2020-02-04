@@ -27,12 +27,6 @@
 #include <unistd.h>
 #include <sys/wait.h>
 
-#include <event2/thread.h>
-#include <usual/event.h>
-#include <usual/pthread.h>
-#include <usual/signal.h>
-
-
 /* Helpers */
 static int num_cpus(void);
 static struct Worker *next_worker(void);
